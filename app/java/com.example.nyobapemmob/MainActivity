@@ -1,0 +1,185 @@
+package com.example.nyobapemmob; // <-- SESUAIKAN DENGAN PACKAGE KAMU
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity {
+
+    // --- DEKLARASI SEMUA VARIABEL ---
+    private RecyclerView recyclerViewShapes;
+    private MaterialButtonToggleGroup toggleMode;
+    private LinearLayout containerForInputs;
+    private EditText edtPanjang, edtLebar, edtJariJari, edtTinggi, edtAlas, edtSisiAtas, edtSisiBawah;
+    private Button btnHitung;
+    private TextView tvHasil;
+    private String currentShape = "";
+
+    private ShapeAdapter shapeAdapter;
+    private List<Shape> shapes2D;
+    private List<Shape> shapes3D;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // --- INISIALISASI SEMUA VIEWS DARI XML ---
+        recyclerViewShapes = findViewById(R.id.recycler_view_shapes);
+        toggleMode = findViewById(R.id.toggle_mode);
+        containerForInputs = findViewById(R.id.container_for_inputs);
+        edtPanjang = findViewById(R.id.edt_panjang);
+        edtLebar = findViewById(R.id.edt_lebar);
+        edtJariJari = findViewById(R.id.edt_jari_jari);
+        edtTinggi = findViewById(R.id.edt_tinggi);
+        edtAlas = findViewById(R.id.edt_alas);
+        edtSisiAtas = findViewById(R.id.edt_sisi_atas);
+        edtSisiBawah = findViewById(R.id.edt_sisi_bawah);
+        btnHitung = findViewById(R.id.btn_hitung);
+        tvHasil = findViewById(R.id.tv_hasil_luas);
+
+        // --- SETUP LOGIKA ---
+        prepareShapeData();
+        setupRecyclerView();
+
+        toggleMode.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                hideAllInputs();
+                tvHasil.setText("0");
+                currentShape = "";
+                if (checkedId == R.id.btn_mode_luas) {
+                    shapeAdapter = new ShapeAdapter(shapes2D);
+                } else if (checkedId == R.id.btn_mode_volume) {
+                    shapeAdapter = new ShapeAdapter(shapes3D);
+                }
+                recyclerViewShapes.setAdapter(shapeAdapter);
+                shapeAdapter.setOnItemClickListener(this::handleShapeClick);
+            }
+        });
+
+        btnHitung.setOnClickListener(v -> performCalculation());
+        toggleMode.check(R.id.btn_mode_luas);
+    }
+
+    private void handleShapeClick(Shape shape) {
+        currentShape = shape.getName();
+        showInputForShape(currentShape);
+    }
+
+    private void prepareShapeData() {
+        shapes2D = new ArrayList<>();
+        shapes2D.add(new Shape("Persegi Panjang", R.drawable.ic_rectangle));
+        shapes2D.add(new Shape("Lingkaran", R.drawable.ic_circle));
+        shapes2D.add(new Shape("Segitiga", R.drawable.ic_triangle));
+        shapes2D.add(new Shape("Trapesium", R.drawable.ic_trapezoid));
+        shapes2D.add(new Shape("Jajar Genjang", R.drawable.ic_parallelogram));
+
+        shapes3D = new ArrayList<>();
+        shapes3D.add(new Shape("Kubus", R.drawable.ic_cube));
+        shapes3D.add(new Shape("Balok", R.drawable.ic_cuboid));
+        shapes3D.add(new Shape("Bola", R.drawable.ic_sphere));
+        shapes3D.add(new Shape("Tabung", R.drawable.ic_cylinder));
+        shapes3D.add(new Shape("Kerucut", R.drawable.ic_cone));
+        shapes3D.add(new Shape("Prisma Segitiga", R.drawable.ic_prism));
+    }
+
+    private void setupRecyclerView() {
+        shapeAdapter = new ShapeAdapter(shapes2D);
+        recyclerViewShapes.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        recyclerViewShapes.setAdapter(shapeAdapter);
+        shapeAdapter.setOnItemClickListener(this::handleShapeClick);
+    }
+
+    private void showInputForShape(String shapeName) {
+        hideAllInputs();
+        switch (shapeName) {
+            case "Persegi Panjang":
+                edtPanjang.setVisibility(View.VISIBLE);
+                edtLebar.setVisibility(View.VISIBLE);
+                break;
+            case "Lingkaran": case "Bola":
+                edtJariJari.setVisibility(View.VISIBLE);
+                break;
+            case "Segitiga": case "Jajar Genjang": case "Prisma Segitiga":
+                edtAlas.setVisibility(View.VISIBLE);
+                edtTinggi.setVisibility(View.VISIBLE);
+                break;
+            case "Trapesium":
+                edtSisiAtas.setVisibility(View.VISIBLE);
+                edtSisiBawah.setVisibility(View.VISIBLE);
+                edtTinggi.setVisibility(View.VISIBLE);
+                break;
+            case "Kubus":
+                edtPanjang.setHint("Masukkan Sisi");
+                edtPanjang.setVisibility(View.VISIBLE);
+                break;
+            case "Balok":
+                edtPanjang.setVisibility(View.VISIBLE);
+                edtLebar.setVisibility(View.VISIBLE);
+                edtTinggi.setVisibility(View.VISIBLE);
+                break;
+            case "Tabung": case "Kerucut":
+                edtJariJari.setVisibility(View.VISIBLE);
+                edtTinggi.setVisibility(View.VISIBLE);
+                break;
+        }
+    }
+
+    private void hideAllInputs() {
+        edtPanjang.setHint("Masukkan Panjang");
+        View[] allInputs = {edtPanjang, edtLebar, edtJariJari, edtTinggi, edtAlas, edtSisiAtas, edtSisiBawah};
+        for (View v : allInputs) {
+            v.setVisibility(View.GONE);
+            if (v instanceof EditText) {
+                ((EditText) v).setText("");
+            }
+        }
+    }
+
+    private void performCalculation() {
+        if (currentShape.isEmpty()) {
+            Toast.makeText(this, "Pilih bangun terlebih dahulu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        double hasil = 0;
+        try {
+            switch (currentShape) {
+                case "Persegi Panjang":
+                    hasil = Double.parseDouble(edtPanjang.getText().toString()) * Double.parseDouble(edtLebar.getText().toString());
+                    break;
+                case "Lingkaran":
+                    double rLingkaran = Double.parseDouble(edtJariJari.getText().toString());
+                    hasil = Math.PI * rLingkaran * rLingkaran;
+                    break;
+                case "Segitiga":
+                    hasil = 0.5 * Double.parseDouble(edtAlas.getText().toString()) * Double.parseDouble(edtTinggi.getText().toString());
+                    break;
+                case "Kubus":
+                    double sisiKubus = Double.parseDouble(edtPanjang.getText().toString());
+                    hasil = sisiKubus * sisiKubus * sisiKubus;
+                    break;
+                case "Bola":
+                    double rBola = Double.parseDouble(edtJariJari.getText().toString());
+                    hasil = (4.0/3.0) * Math.PI * Math.pow(rBola, 3);
+                    break;
+                // --- TAMBAHKAN CASE UNTUK BANGUN LAINNYA DI SINI ---
+                default:
+                    Toast.makeText(this, "Kalkulasi untuk " + currentShape + " belum diimplementasikan.", Toast.LENGTH_SHORT).show();
+                    return;
+            }
+            tvHasil.setText(String.format("%.2f", hasil));
+        } catch (Exception e) {
+            Toast.makeText(this, "Input tidak boleh kosong atau tidak valid!", Toast.LENGTH_SHORT).show();
+        }
+    }
+}
